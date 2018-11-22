@@ -1,6 +1,8 @@
 require 'active_support'
 require 'active_support/core_ext'
 require 'erb'
+require 'byebug'
+require 'active_support/inflector'
 require_relative './session'
 
 class ControllerBase
@@ -21,24 +23,31 @@ class ControllerBase
   def redirect_to(url, status = 302)
     @res.status = status
     @res.header['location'] = url 
-    raise "nah" if @already_built_response
+    raise "nah" if already_built_response?
     @already_built_response = true
   end
 
   # Populate the response with content.
   # Set the response's content type to the given type.
   # Raise an error if the developer tries to double render.
-  def render_content(content, content_type)
+  def render_content(content, content_type = 'text/html')
     @res['content-type'] = content_type
     @res['body'] = content
     @res.write(content)
-    raise "nah" if @already_built_response
+    raise "nooooooooppppeeeee :(" if already_built_response?
     @already_built_response = true
   end
-
+ 
   # use ERB and binding to evaluate templates
   # pass the rendered html to render_content
   def render(template_name)
+    path = File.dirname(__FILE__).chomp("lib")
+    # debugger
+    path += "views/#{self.class.to_s.underscore}/#{template_name}.html.erb"
+    file_content = File.read(path)
+    
+    erb_code = ERB.new(file_content).result(binding)
+    render_content(erb_code)
   end
 
   # method exposing a `Session` object
